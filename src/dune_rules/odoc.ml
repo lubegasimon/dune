@@ -456,9 +456,10 @@ let odocs sctx target =
     let obj_dir = Lib_info.obj_dir info in
     Modules.fold_no_vlib modules ~init:[] ~f:(fun m acc ->
         if List.mem m ~set:(Modules.entry_modules modules) then
-        let odoc = Obj_dir.Module.odoc obj_dir m in
-        create_odoc ctx ~target odoc :: acc
-        else [] )
+          let odoc = Obj_dir.Module.odoc obj_dir m in
+          create_odoc ctx ~target odoc :: acc
+        else
+          [])
 
 let setup_lib_html_rules_def =
   let module Input = struct
