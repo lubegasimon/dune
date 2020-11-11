@@ -427,6 +427,19 @@ let check_mlds_no_dupes ~pkg ~mlds =
           (Path.to_string_maybe_quoted (Path.build p2))
       ]
 
+let entry_modules_by_lib sctx lib =
+  let info = Lib.Local.info lib in
+  let dir = Lib_info.src_dir info in
+  let name = Lib.name (Lib.Local.to_lib lib) in
+  Dir_contents.get sctx ~dir |> Dir_contents.ocaml
+  |> Ml_sources.modules_of_library ~name
+  |> Modules.entry_modules
+
+let entry_modules sctx ~pkg =
+  libs_of_pkg sctx ~pkg
+  |> Lib.Local.Map.of_list_map_exn ~f:(fun l ->
+         (l, entry_modules_by_lib sctx l))
+
 let odocs sctx target =
   let ctx = Super_context.context sctx in
   let dir = Paths.odocs ctx target in
@@ -447,19 +460,10 @@ let odocs sctx target =
            |> create_odoc ctx ~target)
   | Lib lib ->
     let info = Lib.Local.info lib in
-    let dir = Lib_info.src_dir info in
-    let modules =
-      let name = Lib_info.name info in
-      Dir_contents.get sctx ~dir |> Dir_contents.ocaml
-      |> Ml_sources.modules_of_library ~name
-    in
     let obj_dir = Lib_info.obj_dir info in
-    Modules.fold_no_vlib modules ~init:[] ~f:(fun m acc ->
-        if List.mem m ~set:(Modules.entry_modules modules) then
-          let odoc = Obj_dir.Module.odoc obj_dir m in
-          create_odoc ctx ~target odoc :: acc
-        else
-          [])
+    List.map (entry_modules_by_lib sctx lib) ~f:(fun m ->
+        let odoc = Obj_dir.Module.odoc obj_dir m in
+        create_odoc ctx ~target odoc)
 
 let setup_lib_html_rules_def =
   let module Input = struct
@@ -564,19 +568,6 @@ let setup_package_aliases sctx (pkg : Package.t) =
       :: ( libs_of_pkg sctx ~pkg:name
          |> List.map ~f:(fun lib -> Dep.html_alias ctx (Lib lib)) )
     |> Path.Set.of_list_map ~f:(fun f -> Path.build (Alias.stamp_file f)) )
-
-let entry_modules_by_lib sctx lib =
-  let info = Lib.Local.info lib in
-  let dir = Lib_info.src_dir info in
-  let name = Lib.name (Lib.Local.to_lib lib) in
-  Dir_contents.get sctx ~dir |> Dir_contents.ocaml
-  |> Ml_sources.modules_of_library ~name
-  |> Modules.entry_modules
-
-let entry_modules sctx ~pkg =
-  libs_of_pkg sctx ~pkg
-  |> Lib.Local.Map.of_list_map_exn ~f:(fun l ->
-         (l, entry_modules_by_lib sctx l))
 
 let default_index ~pkg entry_modules =
   let b = Buffer.create 512 in

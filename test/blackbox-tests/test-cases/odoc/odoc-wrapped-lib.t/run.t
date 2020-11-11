@@ -8,5 +8,13 @@ This test generates documentation for non-hidden modules only using odoc for a l
   odoc.css
   
   _build/default/_doc/_html/foo:
+  Foo
+  index.html
+  
+  _build/default/_doc/_html/foo/Foo:
+  Bar
+  index.html
+  
+  _build/default/_doc/_html/foo/Foo/Bar:
   index.html
 
