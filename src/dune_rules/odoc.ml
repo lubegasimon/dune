@@ -185,7 +185,7 @@ end = struct
 
   let odocl_file ~doc_dir t =
     let t = Filename.chop_extension (Path.Build.basename t) in
-    Path.Build.relative doc_dir (sprintf "page-%s%s" t odocl_ext)
+    Path.Build.relative doc_dir (sprintf "%s%s" t odocl_ext)
 
   let odocl_input t = t
 end
@@ -252,8 +252,8 @@ let compile_mld sctx (m : Mld.t) ~includes ~doc_dir ~pkg =
 let compile_and_link_odoc_file sctx (o : Odoc_file.t) ~includes ~doc_dir ~pkg =
   let odocl_file = Odoc_file.odocl_file o ~doc_dir in
   let odocl_input = Odoc_file.odocl_input o in
-  (*TODO: understand this (odoc sctx*)
   add_rule sctx
+    (*TODO: understand why (odoc sctx) is here *)
     (Command.run ~dir:(Path.build doc_dir) (odoc sctx)
        [ A "compile"
        ; odoc_base_flags sctx odocl_input
@@ -293,7 +293,7 @@ let setup_html sctx (odocl_file : odocl) ~pkg ~requires =
   let to_remove, dune_keep =
     match odocl_file.source with
     | Mld ->
-    (* | Module -> *)
+      (* | Module -> *)
       (odocl_file.html_file, [])
     | Odoc_file ->
       let dune_keep =
@@ -328,38 +328,6 @@ let setup_html sctx (odocl_file : odocl) ~pkg ~requires =
                ; Hidden_targets [ odocl_file.html_file ]
                ]
           :: dune_keep ) )
-
-let setup_library_odoc_rules cctx (library : Library.t) ~dep_graphs =
-  let lib =
-    let scope = Compilation_context.scope cctx in
-    Library.best_name library
-    |> Lib.DB.find_even_when_hidden (Scope.libs scope)
-    |> Option.value_exn
-  in
-  let local_lib = Lib.Local.of_lib_exn lib in
-  (* Using the proper package name doesn't actually work since odoc assumes that
-     a package contains only 1 library *)
-  let pkg_or_lnu = pkg_or_lnu lib in
-  let sctx = Compilation_context.super_context cctx in
-  let ctx = Super_context.context sctx in
-  let requires = Compilation_context.requires_compile cctx in
-  let info = Lib.info lib in
-  let package = Lib_info.package info in
-  let odoc_include_flags =
-    Command.Args.memo (odoc_include_flags ctx package requires)
-  in
-  let obj_dir = Compilation_context.obj_dir cctx in
-  let modules = Compilation_context.modules cctx in
-  let includes = (Dep.deps ctx package requires, odoc_include_flags) in
-  let modules_and_odoc_files =
-    Modules.fold_no_vlib modules ~init:[] ~f:(fun m acc ->
-        let compiled =
-          compile_module sctx ~includes ~dep_graphs ~obj_dir ~pkg_or_lnu m
-        in
-        compiled :: acc)
-  in
-  Dep.setup_deps ctx (Lib local_lib)
-    (Path.Set.of_list_map modules_and_odoc_files ~f:(fun (_, p) -> Path.build p))
 
 let setup_css_rule sctx =
   let ctx = Super_context.context sctx in
@@ -495,6 +463,10 @@ let odocls sctx target =
     String.Map.values mlds
     |> List.map ~f:(fun mld ->
            Mld.create mld |> Mld.odoc_file ~doc_dir:dir
+           (* |> create_odocl ctx ~target *))
+    |> List.map ~f:(fun o ->
+           Odoc_file.create o
+           |> Odoc_file.odocl_file ~doc_dir:dir
            |> create_odocl ctx ~target)
   | Lib lib ->
     let info = Lib.Local.info lib in
@@ -506,8 +478,8 @@ let odocls sctx target =
     in
     let obj_dir = Lib_info.obj_dir info in
     Modules.fold_no_vlib modules ~init:[] ~f:(fun m acc ->
-        let odoc = Obj_dir.Module.odoc obj_dir m in
-        create_odocl ctx ~target odoc :: acc)
+        let odocl = Obj_dir.Module.odoc obj_dir m in
+        create_odocl ctx ~target odocl :: acc)
 
 let setup_lib_html_rules_def =
   let module Input = struct
@@ -530,10 +502,10 @@ let setup_lib_html_rules_def =
   end in
   let f (sctx, lib, requires) =
     let ctx = Super_context.context sctx in
-    let odocs = odocls sctx (Lib lib) in
+    let odocls = odocls sctx (Lib lib) in
     let pkg = Lib_info.package (Lib.Local.info lib) in
-    List.iter odocs ~f:(setup_html sctx ~pkg ~requires);
-    let html_files = List.map ~f:(fun o -> Path.build o.html_file) odocs in
+    List.iter odocls ~f:(setup_html sctx ~pkg ~requires);
+    let html_files = List.map ~f:(fun o -> Path.build o.html_file) odocls in
     let static_html = List.map ~f:Path.build (static_html ctx) in
     Rules.Produce.Alias.add_deps
       (Dep.html_alias ctx (Lib lib))
@@ -625,6 +597,45 @@ let entry_modules sctx ~pkg =
   libs_of_pkg sctx ~pkg
   |> Lib.Local.Map.of_list_map_exn ~f:(fun l ->
          (l, entry_modules_by_lib sctx l))
+
+let setup_library_odoc_rules cctx (library : Library.t) ~dep_graphs =
+  let lib =
+    let scope = Compilation_context.scope cctx in
+    Library.best_name library
+    |> Lib.DB.find_even_when_hidden (Scope.libs scope)
+    |> Option.value_exn
+  in
+  let local_lib = Lib.Local.of_lib_exn lib in
+  (* Using the proper package name doesn't actually work since odoc assumes that
+     a package contains only 1 library *)
+  let pkg_or_lnu = pkg_or_lnu lib in
+  let sctx = Compilation_context.super_context cctx in
+  let ctx = Super_context.context sctx in
+  let requires = Compilation_context.requires_compile cctx in
+  let info = Lib.info lib in
+  let package = Lib_info.package info in
+  let odoc_include_flags =
+    Command.Args.memo (odoc_include_flags ctx package requires)
+  in
+  let obj_dir = Compilation_context.obj_dir cctx in
+  let modules = Compilation_context.modules cctx in
+  let includes = (Dep.deps ctx package requires, odoc_include_flags) in
+  let modules_and_odoc_files =
+    Modules.fold_no_vlib modules ~init:[] ~f:(fun m acc ->
+        let compiled =
+          compile_module sctx ~includes ~dep_graphs ~obj_dir ~pkg_or_lnu m
+        in
+        compiled :: acc)
+  in
+
+  (*TODO:*)
+  (* let linked_odoc_files = List.map modules_and_odoc_files ~f:(fun (_, o) ->
+     compile_and_link_odoc_file sctx (Odoc_file.create o) ~pkg
+     ~doc_dir:(Paths.odocls ctx (Pkg pkg)) ~includes:(Build.return [])) *)
+  Dep.setup_deps ctx (Lib local_lib)
+    (*TODO:*)
+    (* (Path.Set.of_list_map linked_odoc_files ~f:(fun o -> Path.build o)) *)
+    (Path.Set.of_list_map modules_and_odoc_files ~f:(fun (_, o) -> Path.build o))
 
 let default_index ~pkg entry_modules =
   let b = Buffer.create 512 in
