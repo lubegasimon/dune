@@ -185,7 +185,7 @@ end = struct
 
   let odocl_file ~doc_dir t =
     let t = Filename.chop_extension (Path.Build.basename t) in
-    Path.Build.relative doc_dir (sprintf "%s%s" t odocl_ext)
+    Path.Build.relative doc_dir (sprintf "page-%s%s" t odocl_ext)
 
   let odocl_input t = t
 end
@@ -463,10 +463,6 @@ let odocls sctx target =
     String.Map.values mlds
     |> List.map ~f:(fun mld ->
            Mld.create mld |> Mld.odoc_file ~doc_dir:dir
-           (* |> create_odocl ctx ~target *))
-    |> List.map ~f:(fun o ->
-           Odoc_file.create o
-           |> Odoc_file.odocl_file ~doc_dir:dir
            |> create_odocl ctx ~target)
   | Lib lib ->
     let info = Lib.Local.info lib in
@@ -627,14 +623,7 @@ let setup_library_odoc_rules cctx (library : Library.t) ~dep_graphs =
         in
         compiled :: acc)
   in
-
-  (*TODO:*)
-  (* let linked_odoc_files = List.map modules_and_odoc_files ~f:(fun (_, o) ->
-     compile_and_link_odoc_file sctx (Odoc_file.create o) ~pkg
-     ~doc_dir:(Paths.odocls ctx (Pkg pkg)) ~includes:(Build.return [])) *)
   Dep.setup_deps ctx (Lib local_lib)
-    (*TODO:*)
-    (* (Path.Set.of_list_map linked_odoc_files ~f:(fun o -> Path.build o)) *)
     (Path.Set.of_list_map modules_and_odoc_files ~f:(fun (_, o) -> Path.build o))
 
 let default_index ~pkg entry_modules =
