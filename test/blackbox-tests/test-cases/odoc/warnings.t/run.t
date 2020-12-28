@@ -19,10 +19,10 @@ These packages are in a nested env, the option is disabled, should success with 
   $ dune build --only-packages=bar_doc,bar_lib @doc
   File "../../../../sub_env/bar_doc/bar.mld", line 3, characters 0-0:
   End of text is not allowed in '[...]' (code).
-  File "../../../../sub_env/bar_doc/bar.mld", line 3, characters 0-0:
-  End of text is not allowed in '[...]' (code).
   File "sub_env/bar_lib/bar.mli", line 1, characters 7-7:
   End of text is not allowed in '[...]' (code).
+          odoc sub_env/bar_lib/.bar.objs/byte/bar.odocl
+  Starting link
 
 In release mode, no error:
 
@@ -30,9 +30,8 @@ In release mode, no error:
           odoc _doc/_odoc/pkg/foo_doc/page-foo.odoc
   File "../../../../foo_doc/foo.mld", line 3, characters 0-0:
   End of text is not allowed in '[...]' (code).
-          odoc _doc/_odoc/pkg/foo_doc/page-foo.odocl
-  File "../../../../foo_doc/foo.mld", line 3, characters 0-0:
-  End of text is not allowed in '[...]' (code).
           odoc foo_lib/.foo.objs/byte/foo.odoc
   File "foo_lib/foo.mli", line 1, characters 7-7:
   End of text is not allowed in '[...]' (code).
+          odoc foo_lib/.foo.objs/byte/foo.odocl
+  Starting link
