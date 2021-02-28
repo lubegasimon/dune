@@ -59,6 +59,7 @@ type t =
   ; obj_dir : Path.Build.t Obj_dir.t
   ; modules : Modules.t
   ; flags : Ocaml_flags.t
+  (* ; executable_flags: Ocaml_flags.t option *)
   ; requires_compile : Lib.t list Or_exn.t
   ; requires_link : Lib.t list Or_exn.t Lazy.t
   ; includes : Includes.t
@@ -87,6 +88,8 @@ let modules t = t.modules
 
 let flags t = t.flags
 
+(* let executable_flags t = t.executable_flags *)
+
 let requires_compile t = t.requires_compile
 
 let requires_link t = Lazy.force t.requires_link
@@ -114,6 +117,7 @@ let bin_annot t = t.bin_annot
 let context t = Super_context.context t.super_context
 
 let create ~super_context ~scope ~expander ~obj_dir ~modules ~flags
+(* ?executable_flags *)
     ~requires_compile ~requires_link ?(preprocessing = Pp_spec.dummy) ~opaque
     ?stdlib ~js_of_ocaml ~package ?vimpl ?modes ?(bin_annot = true) () =
   let project = Scope.project scope in
@@ -143,6 +147,7 @@ let create ~super_context ~scope ~expander ~obj_dir ~modules ~flags
   ; obj_dir
   ; modules
   ; flags
+  (* ; executable_flags *)
   ; requires_compile
   ; requires_link
   ; includes = Includes.make ~project ~opaque ~requires:requires_compile

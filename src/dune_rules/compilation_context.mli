@@ -29,6 +29,7 @@ val create :
   -> obj_dir:Path.Build.t Obj_dir.t
   -> modules:Modules.t
   -> flags:Ocaml_flags.t
+  (* -> ?executable_flags: Ocaml_flags.t *)
   -> requires_compile:Lib.t list Or_exn.t
   -> requires_link:Lib.t list Or_exn.t Lazy.t
   -> ?preprocessing:Pp_spec.t
@@ -62,6 +63,8 @@ val obj_dir : t -> Path.Build.t Obj_dir.t
 val modules : t -> Modules.t
 
 val flags : t -> Ocaml_flags.t
+
+(* val executable_flags : t -> Ocaml_flags.t option *)
 
 val requires_link : t -> Lib.t list Or_exn.t
 

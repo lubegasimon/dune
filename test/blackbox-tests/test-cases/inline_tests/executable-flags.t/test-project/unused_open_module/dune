@@ -1,0 +1,4 @@
+(library
+ (name test_unused_open_module)
+ (inline_tests
+  (backend unused_open_backend)))

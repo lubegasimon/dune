@@ -1,0 +1,4 @@
+(library
+ (name test_foo)
+ (inline_tests
+  (backend unused_open_backend)))

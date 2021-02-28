@@ -188,6 +188,7 @@ include Sub_system.Register_end_point (struct
            field "executable" ~default:Ocaml_flags.Spec.standard
              ( Dune_lang.Syntax.since Stanza.syntax (2, 8)
              >>> fields Ocaml_flags.Spec.decode )
+             (* (fields (let+ executable_flags = field "exec_flags" ~default: Ocaml_flags.Spec.standard)) *)
          and+ backend = field_o "backend" (located Lib_name.decode)
          and+ libraries =
            field "libraries" (repeat (located Lib_name.decode)) ~default:[]
@@ -280,12 +281,15 @@ include Sub_system.Register_end_point (struct
       let flags =
         Ocaml_flags.append_common
           (Super_context.ocaml_flags sctx ~dir info.executable)
-          [ "-w"; "-24"; "-g" ]
+          [ "-w"; "-24"; "-g"]
       in
       Compilation_context.create () ~super_context:sctx ~expander ~scope
         ~obj_dir ~modules ~opaque:(Explicit false) ~requires_compile:runner_libs
         ~requires_link:(lazy runner_libs)
-        ~flags ~js_of_ocaml:(Some lib.buildable.js_of_ocaml) ~package
+        (* ~executable_flags *)
+        (* ~flags:(Ocaml_flags.of_list [ "-w"; "-24"; "-g" ]) *)
+        ~flags
+        ~js_of_ocaml:(Some lib.buildable.js_of_ocaml) ~package
     in
     let linkages =
       let modes =
